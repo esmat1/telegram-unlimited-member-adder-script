@@ -1,0 +1,96 @@
+import csv
+
+from telethon.sync import TelegramClient
+
+from telethon.errors.rpcerrorlist import PeerFloodError, UserPrivacyRestrictedError
+
+from telethon.tl.functions.contacts import ImportContactsRequest
+
+from telethon.tl.types import InputPhoneContact
+
+# بيانات الحساب الخاص بك
+
+api_id = 27572035
+
+api_hash = '11298acbcfd09ef5032de4cbf85c6c6b'
+
+# اسم المجموعة التي تريد استيراد بيانات أعضائها
+
+group_name = 'التجارة الإلكترونية'
+
+# اسم ملف CSV الذي سيتم حفظ بيانات الأعضاء فيه
+
+csv_file_name = 'ecommerce_members.csv'
+
+# إنشاء جلسة جديدة
+
+client = TelegramClient('session_name', api_id, api_hash)
+
+client.start()
+
+# الحصول على المجموعة
+
+group = client.get_entity(group_name)
+
+# إنشاء متغير لحفظ بيانات الأعضاء
+
+members = []
+
+# الحصول على قائمة بأعضاء المجموعة
+
+try:
+
+    members = client.get_participants(group)
+
+except UserPrivacyRestrictedError:
+
+    print('خطأ: لا يمكن الوصول إلى قائمة أعضاء هذه المجموعة بسبب إعدادات خصوصية المستخدمين')
+
+# إنشاء متغير لحفظ بيانات الجهات
+
+contacts = []
+
+# إضافة بيانات الأعضاء إلى قائمة الجهات
+
+for member in members:
+
+    if member.phone:
+
+        contact = InputPhoneContact(
+
+            client_id=0,
+
+            phone=member.phone,
+
+            first_name=member.first_name,
+
+            last_name=member.last_name)
+
+        contacts.append(contact)
+
+# حفظ بيانات الجهات في ملف CSV
+
+with open(csv_file_name, 'w', newline='', encoding='utf-8') as f:
+
+    writer = csv.writer(f)
+
+    writer.writerow(['First Name', 'Last Name', 'Phone Number'])
+
+    for contact in contacts:
+
+        writer.writerow([contact.first_name, contact.last_name, contact.phone])
+
+# إضافة الجهات إلى دفتر العناوين
+
+try:
+
+    client(ImportContactsRequest(contacts))
+
+except PeerFloodError:
+
+    print('خطأ: حدث تكرار للعملية، يرجى المحاولة مرة أخرى في وقت لاحق')
+
+# إنهاء الجلسة
+
+client
+
